@@ -3,6 +3,8 @@ import { handle404 } from "./middlewares/errorHandling/handle404.js";
 import { errorHandler } from "./middlewares/errorHandling/errorHandler.middleware.js";
 import { auth } from "./middlewares/auth/auth.middleware.js";
 import { router as authRouter } from "./routes/auth/auth.route.js";
+import { router as buyerRouter } from "./routes/buyer/buyer.route.js";
+import { router as sellerRouter } from "./routes/seller/seller.route.js";
 
 const PORT = process.env.PORT || 5000;
 const app = express();
@@ -13,10 +15,11 @@ app.use(express.json());
 // auth
 app.use("/api/auth", authRouter);
 
-//login
-app.post("/api/auth/login", auth, (req, res, next) => {
-  res.send("success!!!!!!!");
-});
+// buyer route
+app.use("/api/buyer", buyerRouter);
+
+// buyer route
+app.use("/api/seller", sellerRouter);
 
 app.use("*", handle404);
 
@@ -28,6 +31,10 @@ process.on("uncaughtException", (err) => {
 
 process.on("unhandledRejection", (err) => {
   console.log(`Found in unhandledRejection: ${err} `);
+});
+
+process.once("SIGUSR2", function () {
+  process.kill(process.pid, "SIGUSR2");
 });
 
 export default app;

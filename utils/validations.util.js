@@ -1,9 +1,15 @@
+import validator from "validator";
+
 export const validateUsername = (username) => {
   if (username.length < 6) {
     return false;
   }
 
   return true;
+};
+
+export const validateObjectId = (id) => {
+  return validator.isMongoId(id);
 };
 
 export const validatePassword = (password) => {

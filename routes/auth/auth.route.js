@@ -7,6 +7,8 @@ import {
 import { users } from "../../utils/constants.util.js";
 import bcrypt from "bcrypt";
 import { UserModel } from "../../models/userModel.js";
+import { logger } from "../../utils/logger.util.js";
+import jwt from "jsonwebtoken";
 
 //Router
 export const router = express.Router();
@@ -110,6 +112,7 @@ router.post("/login", async (req, res, next) => {
     }
     const payload = {
       userId: user._id,
+      type: user.type,
     };
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: 60 * 60,

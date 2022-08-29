@@ -1,4 +1,4 @@
-import * as jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import { APIError, HTTPStatus } from "../../utils/apierror.util.js";
 
 export const auth = (req, res, next) => {
@@ -22,6 +22,7 @@ export const auth = (req, res, next) => {
     }
 
     req.userId = payload.userId;
+    req.type = payload.type;
     return next();
   });
 };
