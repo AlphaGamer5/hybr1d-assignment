@@ -6,7 +6,7 @@ export const connect = async () => {
       throw new Error("No port specified for mongodb.");
     }
 
-    const dburl = `mongodb://${process.env.MONGO_HOST}/hybr1d`;
+    const dburl = `mongodb://${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/hybr1d`;
 
     return mongoose.connect(dburl);
   } catch (error) {
