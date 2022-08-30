@@ -8,6 +8,7 @@ import { APIError, HTTPStatus } from "../../utils/apierror.util.js";
 import { logger } from "../../utils/logger.util.js";
 import { validateObjectId } from "../../utils/validations.util.js";
 import { CatalogModel } from "../../models/catalogModel.js";
+import { redis } from "../../connectors/index.js";
 
 export const router = express.Router();
 
@@ -22,6 +23,16 @@ router.get("/list-of-sellers", auth, async (req, res, next) => {
           "Not authorized. please login as a `buyer`."
         )
       );
+    }
+
+    const REDIS_QUERY = "/list-of-sellers/";
+    const client = await redis.connectRedis();
+
+    let data = await client.get(REDIS_QUERY);
+    if (data) {
+      logger.info(`fetched from redis...`);
+      res.send(JSON.parse(data));
+      return next();
     }
 
     const sellers = (
@@ -45,6 +56,15 @@ router.get("/list-of-sellers", auth, async (req, res, next) => {
     if (!sellers) {
       return next(new APIError(HTTPStatus.OK, "No sellers found.."));
     }
+
+    logger.info("fetched from mongodb...");
+
+    await client.set(
+      REDIS_QUERY,
+      JSON.stringify(sellers.sellers),
+      "EX",
+      30 * 60
+    );
 
     res.send(sellers.sellers);
     return next();
@@ -82,6 +102,15 @@ router.get("/seller-catalog/:seller_id", auth, async (req, res, next) => {
       );
     }
 
+    const REDIS_QUERY = "/seller-catalog/" + sellerId;
+    const client = await redis.connectRedis();
+
+    let data = await client.get(REDIS_QUERY);
+    if (data) {
+      logger.info(`fetched from redis...`);
+      res.send(JSON.parse(data));
+      return next();
+    }
     const catalog = (
       await CatalogModel.aggregate([
         {
@@ -126,6 +155,13 @@ router.get("/seller-catalog/:seller_id", auth, async (req, res, next) => {
         new APIError(HTTPStatus.OK, "No catalog found for this seller.")
       );
     }
+    logger.info(`fetched from mongodb...`);
+    await client.set(
+      REDIS_QUERY,
+      JSON.stringify(catalog.catalog),
+      "EX",
+      30 * 60
+    );
 
     res.send(catalog.catalog);
     return next();

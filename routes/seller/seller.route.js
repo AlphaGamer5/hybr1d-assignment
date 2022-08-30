@@ -6,6 +6,7 @@ import { APIError, HTTPStatus } from "../../utils/apierror.util.js";
 import { auth } from "../../middlewares/auth/auth.middleware.js";
 import mongoose from "mongoose";
 import { OrderModel } from "../../models/orderModel.js";
+import { redis } from "../../connectors/index.js";
 
 export const router = express.Router();
 
@@ -20,6 +21,15 @@ router.get("/orders", auth, async (req, res, next) => {
           "Not authorized. please login as a `seller`."
         )
       );
+    }
+
+    const client = await redis.connectRedis();
+    const REDIS_QUERY = "/orders/" + userId;
+    let data = await client.get(REDIS_QUERY);
+    if (data) {
+      logger.info(`fetched from redis...`);
+      res.send(JSON.parse(data));
+      return next();
     }
 
     const orders = (
@@ -95,6 +105,10 @@ router.get("/orders", auth, async (req, res, next) => {
         new APIError(HTTPStatus.OK, "No orders found for this seller.")
       );
     }
+
+    logger.info("fetched from mongodb...");
+
+    await client.set(REDIS_QUERY, JSON.stringify(orders.orders), "EX", 30 * 60);
 
     res.send(orders.orders);
     return next();
@@ -217,10 +231,4 @@ router.post("/create-catalog", auth, async (req, res, next) => {
       new APIError(HTTPStatus.InternalServerError, "Internal Server Error")
     );
   }
-});
-
-router.get("/orders", auth, async (req, res, next) => {
-  const { userId } = req;
-
-  const data = await OrderModel.aggregate({});
 });
