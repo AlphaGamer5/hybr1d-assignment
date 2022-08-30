@@ -8,9 +8,9 @@
 4. `npm run start` to start the project.
 
 **\*\*\*\***\*\*\***\*\*\*\***.env file format**\*\***\*\*\***\*\***
-PORT= < PORT in which your server is running (5000)>
-MONGO_HOST= < MONGO DB host (localhost)>
-MONGO_PORT = < PORT in which Mongodb is running on.(27017) >
-JWT_SECRET= < any secret key of your choice >
-REDIS_HOST= < localhost or any other host >
-REDIS_PORT= < PORT in which Redis is running on.(6379) >
+1. PORT= < PORT in which your server is running (5000)>
+2. MONGO_HOST= < MONGO DB host (localhost)>
+3. MONGO_PORT = < PORT in which Mongodb is running on.(27017) >
+4. JWT_SECRET= < any secret key of your choice >
+5. REDIS_HOST= < localhost or any other host >
+6. REDIS_PORT= < PORT in which Redis is running on.(6379) >
