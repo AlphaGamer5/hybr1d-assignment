@@ -7,7 +7,7 @@
 3. add all the **environment variables** in a `.env` file.
 4. `npm run start` to start the project.
 
-**\*\*\*\***\*\*\***\*\*\*\***.env file format**\*\***\*\*\***\*\***
+> **\*\*\*\***\*\*\***\*\*\*\***.env file format**\*\***\*\*\***\*\***
 1. PORT= < PORT in which your server is running (5000)>
 2. MONGO_HOST= < MONGO DB host (localhost)>
 3. MONGO_PORT = < PORT in which Mongodb is running on.(27017) >
