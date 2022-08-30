@@ -12,8 +12,39 @@ import { CatalogModel } from "../../models/catalogModel.js";
 export const router = express.Router();
 
 // buyer apis
-router.get("/list-of-sellers", (req, res, next) => {
-  return res.send("buyer");
+router.get("/list-of-sellers", auth, async (req, res, next) => {
+  try {
+    const { type } = req;
+    if (type !== "buyer") {
+      return next(new APIError(HTTPStatus.Forbidden, "Forbidden Endpoint."));
+    }
+
+    const { sellers } = (
+      await UserModel.aggregate([
+        {
+          $match: {
+            type: "seller",
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            sellers: {
+              $push: "$username",
+            },
+          },
+        },
+      ])
+    )[0];
+
+    res.send(sellers);
+    return next();
+  } catch (error) {
+    logger.error("GET /list-of-sellers", error);
+    return next(
+      new APIError(HTTPStatus.InternalServerError, "Internal Server Error.")
+    );
+  }
 });
 
 router.post("/create-order/:seller_id", auth, async (req, res, next) => {
