@@ -9,6 +9,96 @@ import { OrderModel } from "../../models/orderModel.js";
 
 export const router = express.Router();
 
+//seller apis
+router.get("/orders", auth, async (req, res, next) => {
+  try {
+    const { userId, type } = req;
+    if (type !== "seller") {
+      return next(
+        new APIError(
+          HTTPStatus.Unauthorized,
+          "Not authorized. please login as a `seller`."
+        )
+      );
+    }
+
+    const { orders } = (
+      await OrderModel.aggregate([
+        {
+          $match: {
+            sellerid: mongoose.Types.ObjectId(userId),
+          },
+        },
+        {
+          $project: {
+            order: 1,
+          },
+        },
+        {
+          $unwind: {
+            path: "$order",
+          },
+        },
+        {
+          $lookup: {
+            from: "items",
+            localField: "order",
+            foreignField: "_id",
+            as: "item",
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            item: {
+              $arrayElemAt: ["$item", 0],
+            },
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            item: "$item.name",
+          },
+        },
+        {
+          $group: {
+            _id: "$_id",
+            items: {
+              $push: "$item",
+            },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            orders: {
+              $push: "$items",
+            },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+          },
+        },
+      ])
+    )[0];
+    res.send(orders);
+    return next();
+  } catch (error) {
+    logger.error("GET /orders", error);
+    return next(
+      new APIError(HTTPStatus.InternalServerError, "Internal Server Error.")
+    );
+  }
+});
+
 router.post("/create-catalog", auth, async (req, res, next) => {
   try {
     const { items } = req.body;

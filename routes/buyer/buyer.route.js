@@ -16,7 +16,12 @@ router.get("/list-of-sellers", auth, async (req, res, next) => {
   try {
     const { type } = req;
     if (type !== "buyer") {
-      return next(new APIError(HTTPStatus.Forbidden, "Forbidden Endpoint."));
+      return next(
+        new APIError(
+          HTTPStatus.Unauthorized,
+          "Not authorized. please login as a `buyer`."
+        )
+      );
     }
 
     const { sellers } = (
@@ -56,8 +61,8 @@ router.post("/create-order/:seller_id", auth, async (req, res, next) => {
     if (type !== "buyer") {
       return next(
         new APIError(
-          HTTPStatus.BadRequest,
-          "only a `buyer` can create an order."
+          HTTPStatus.Unauthorized,
+          "Not authorized. please login as a `buyer`."
         )
       );
     }
@@ -98,7 +103,7 @@ router.post("/create-order/:seller_id", auth, async (req, res, next) => {
       await CatalogModel.aggregate([
         {
           $match: {
-            sellerid: mongoose.Types.ObjectId(seller_id),
+            sellerid: new mongoose.Types.ObjectId(seller_id),
           },
         },
         {
