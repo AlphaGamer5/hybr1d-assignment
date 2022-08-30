@@ -63,10 +63,10 @@ router.get("/list-of-sellers", auth, async (req, res, next) => {
       REDIS_QUERY,
       JSON.stringify(sellers.sellers),
       "EX",
-      30 * 60
+      15 * 60 // 15 min
     );
 
-    res.send(sellers.sellers);
+    res.send({ sellers: sellers["sellers"] });
     return next();
   } catch (error) {
     logger.error("GET /list-of-sellers", error);
@@ -160,10 +160,10 @@ router.get("/seller-catalog/:seller_id", auth, async (req, res, next) => {
       REDIS_QUERY,
       JSON.stringify(catalog.catalog),
       "EX",
-      30 * 60
+      30 * 60 // 15 min
     );
 
-    res.send(catalog.catalog);
+    res.send({ catalog: catalog["catalog"] });
     return next();
   } catch (error) {
     logger.error("GET /seller-catalog/:seller_id", error);
@@ -310,8 +310,14 @@ router.post("/create-order/:seller_id", auth, async (req, res, next) => {
       order: presentItems,
     });
 
+    // delete the cached data for the seller when a user creates a new order to that seller
+    const REDIS_QUERY = "/orders/" + seller_id;
+    const client = await redis.connectRedis();
+    await client.del(REDIS_QUERY);
+
+    logger.info("deleted from redis...");
     await order.save();
-    res.send("order successfully created...");
+    res.status(HTTPStatus.OK).send({ message: "Created Order Successfully." });
     return next();
   } catch (error) {
     logger.error("POST /api/buyer/create-order/:seller_id", error);

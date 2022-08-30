@@ -9,6 +9,7 @@ import bcrypt from "bcrypt";
 import { UserModel } from "../../models/userModel.js";
 import { logger } from "../../utils/logger.util.js";
 import jwt from "jsonwebtoken";
+import { redis } from "../../connectors/index.js";
 
 //Router
 export const router = express.Router();
@@ -69,6 +70,12 @@ router.post("/register", async (req, res, next) => {
     const hashedPassword = await bcrypt.hash(password, salt);
     const user = new UserModel({ username, password: hashedPassword, type });
     await user.save();
+
+    const REDIS_QUERY = "/list-of-sellers/";
+    const client = await redis.connectRedis();
+
+    await client.del(REDIS_QUERY);
+    logger.info("deleted from redis...");
     res
       .status(HTTPStatus.OK)
       .send({ message: "Registered User Successfully." });

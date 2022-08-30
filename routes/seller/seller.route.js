@@ -108,9 +108,9 @@ router.get("/orders", auth, async (req, res, next) => {
 
     logger.info("fetched from mongodb...");
 
-    await client.set(REDIS_QUERY, JSON.stringify(orders.orders), "EX", 30 * 60);
+    await client.set(REDIS_QUERY, JSON.stringify(orders.orders), "EX", 15 * 60); // min
 
-    res.send(orders.orders);
+    res.send({ orders: orders["orders"] });
     return next();
   } catch (error) {
     logger.error("GET /orders", error);
@@ -123,6 +123,7 @@ router.get("/orders", auth, async (req, res, next) => {
 router.post("/create-catalog", auth, async (req, res, next) => {
   try {
     const { items } = req.body;
+    const { userId, type } = req;
 
     if (!items || !items.length) {
       return next(
@@ -132,7 +133,6 @@ router.post("/create-catalog", auth, async (req, res, next) => {
         )
       );
     }
-    const { userId, type } = req;
 
     if (type !== "seller") {
       return next(
@@ -223,7 +223,14 @@ router.post("/create-catalog", auth, async (req, res, next) => {
       }
     );
 
-    res.send("successfully created catalog...");
+    // delete the cache stored for /seller-catalog:seller_id as the catalog is updated
+    const REDIS_QUERY = "/seller-catalog/" + userId;
+    const client = await redis.connectRedis();
+    await client.del(REDIS_QUERY);
+
+    res
+      .status(HTTPStatus.OK)
+      .send({ message: "Created Catalog Successfully." });
     return next();
   } catch (error) {
     logger.error("POST /api/auth/create-catalog", error);
