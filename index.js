@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 import app from "./app.js";
-import { mongoDb } from "./db/index.js";
+import { mongoDb } from "./connectors/db/index.js";
 
 (async () => {
   try {
