@@ -7,6 +7,7 @@ import { ItemModel } from "../../models/itemModel.js";
 import { APIError, HTTPStatus } from "../../utils/apierror.util.js";
 import { logger } from "../../utils/logger.util.js";
 import { validateObjectId } from "../../utils/validations.util.js";
+import { CatalogModel } from "../../models/catalogModel.js";
 
 export const router = express.Router();
 
@@ -63,37 +64,58 @@ router.post("/create-order/:seller_id", auth, async (req, res, next) => {
     }
 
     const { notavailable: notAvailable, presentitems: presentItems } = (
-      await ItemModel.aggregate([
+      await CatalogModel.aggregate([
+        {
+          $match: {
+            sellerid: mongoose.Types.ObjectId(seller_id),
+          },
+        },
         {
           $project: {
-            name: 1,
+            __v: 0,
+            _id: 0,
+            sellerid: 0,
+          },
+        },
+        {
+          $addFields: {
+            inputitems: items,
+          },
+        },
+        {
+          $unwind: {
+            path: "$items",
+          },
+        },
+        {
+          $lookup: {
+            from: "items",
+            localField: "items",
+            foreignField: "_id",
+            as: "item",
           },
         },
         {
           $group: {
             _id: null,
-            items: {
+            allitems: {
               $push: {
-                _id: "$_id",
-                name: "$name",
+                $arrayElemAt: ["$item", 0],
               },
             },
-          },
-        },
-        {
-          $addFields: {
-            notavailable: {
-              $setDifference: [items, "$items.name"],
+            inputitems: {
+              $first: "$inputitems",
             },
-            inputitems: items,
           },
         },
         {
           $project: {
-            notavailable: 1,
+            notavailable: {
+              $setDifference: ["$inputitems", "$allitems.name"],
+            },
             presentitems: {
               $filter: {
-                input: "$items",
+                input: "$allitems",
                 cond: {
                   $in: ["$$this.name", "$inputitems"],
                 },
@@ -120,7 +142,7 @@ router.post("/create-order/:seller_id", auth, async (req, res, next) => {
       return next(
         new APIError(
           HTTPStatus.BadRequest,
-          `these items are not available in the catalog: ${notAvailable}.`
+          `these items are not available in the catalog: **${notAvailable}**.`
         )
       );
     }
@@ -132,7 +154,8 @@ router.post("/create-order/:seller_id", auth, async (req, res, next) => {
     });
 
     await order.save();
-    return res.send("order successfully created...");
+    res.send("order successfully created...");
+    return next();
   } catch (error) {
     logger.error("POST /api/buyer/create-order/:seller_id", error);
     return next(

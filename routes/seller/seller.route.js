@@ -52,10 +52,14 @@ router.post("/create-catalog", auth, async (req, res, next) => {
         },
         {
           $addFields: {
-            notavailable: {
-              $setDifference: [items, "$items.name"],
-            },
             inputitems: items,
+          },
+        },
+        {
+          $addFields: {
+            notavailable: {
+              $setDifference: ["$inputitems", "$items.name"],
+            },
           },
         },
         {
@@ -90,7 +94,7 @@ router.post("/create-catalog", auth, async (req, res, next) => {
       return next(
         new APIError(
           HTTPStatus.BadRequest,
-          `these items are not available in the catalog: ${notAvailable}.`
+          `these items are not available for adding in catalog: **${notAvailable}**.`
         )
       );
     }
@@ -101,18 +105,17 @@ router.post("/create-catalog", auth, async (req, res, next) => {
       },
       {
         sellerid: userId,
-        items: itemids,
+        items: presentItems,
       },
       {
         upsert: true,
       }
     );
 
-    console.log(catalog);
-    res.send("successfully created.");
+    res.send("successfully created catalog...");
     return next();
   } catch (error) {
-    logger.error("POST /api/auth/create-catalog", error.message);
+    logger.error("POST /api/auth/create-catalog", error);
     return next(
       new APIError(HTTPStatus.InternalServerError, "Internal Server Error")
     );
