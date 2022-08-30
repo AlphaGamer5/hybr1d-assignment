@@ -24,7 +24,7 @@ router.get("/list-of-sellers", auth, async (req, res, next) => {
       );
     }
 
-    const { sellers } = (
+    const sellers = (
       await UserModel.aggregate([
         {
           $match: {
@@ -42,10 +42,95 @@ router.get("/list-of-sellers", auth, async (req, res, next) => {
       ])
     )[0];
 
-    res.send(sellers);
+    if (!sellers) {
+      return next(new APIError(HTTPStatus.OK, "No sellers found.."));
+    }
+
+    res.send(sellers.sellers);
     return next();
   } catch (error) {
     logger.error("GET /list-of-sellers", error);
+    return next(
+      new APIError(HTTPStatus.InternalServerError, "Internal Server Error.")
+    );
+  }
+});
+
+router.get("/seller-catalog/:seller_id", auth, async (req, res, next) => {
+  try {
+    const { type } = req;
+    const { seller_id: sellerId } = req.params;
+
+    if (type !== "buyer") {
+      return next(
+        new APIError(
+          HTTPStatus.Unauthorized,
+          "Not authorized. please login as a `buyer`."
+        )
+      );
+    }
+
+    if (!sellerId) {
+      return next(
+        new APIError(HTTPStatus.BadRequest, "missing param `seller_id`")
+      );
+    }
+
+    if (!validateObjectId(sellerId)) {
+      return next(
+        new APIError(HTTPStatus.BadRequest, "Invalid Param `seller_id`.")
+      );
+    }
+
+    const catalog = (
+      await CatalogModel.aggregate([
+        {
+          $match: {
+            sellerid: new mongoose.Types.ObjectId(sellerId),
+          },
+        },
+        {
+          $project: {
+            items: 1,
+            _id: 0,
+          },
+        },
+        {
+          $unwind: {
+            path: "$items",
+          },
+        },
+        {
+          $lookup: {
+            from: "items",
+            localField: "items",
+            foreignField: "_id",
+            as: "items",
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            catalog: {
+              $push: {
+                $arrayElemAt: ["$items.name", 0],
+              },
+            },
+          },
+        },
+      ])
+    )[0];
+
+    if (!catalog) {
+      return next(
+        new APIError(HTTPStatus.OK, "No catalog found for this seller.")
+      );
+    }
+
+    res.send(catalog.catalog);
+    return next();
+  } catch (error) {
+    logger.error("GET /seller-catalog/:seller_id", error);
     return next(
       new APIError(HTTPStatus.InternalServerError, "Internal Server Error.")
     );

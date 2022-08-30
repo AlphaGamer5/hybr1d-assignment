@@ -22,11 +22,11 @@ router.get("/orders", auth, async (req, res, next) => {
       );
     }
 
-    const { orders } = (
+    const orders = (
       await OrderModel.aggregate([
         {
           $match: {
-            sellerid: mongoose.Types.ObjectId(userId),
+            sellerid: new mongoose.Types.ObjectId(userId),
           },
         },
         {
@@ -89,7 +89,14 @@ router.get("/orders", auth, async (req, res, next) => {
         },
       ])
     )[0];
-    res.send(orders);
+
+    if (!orders) {
+      return next(
+        new APIError(HTTPStatus.OK, "No orders found for this seller.")
+      );
+    }
+
+    res.send(orders.orders);
     return next();
   } catch (error) {
     logger.error("GET /orders", error);
