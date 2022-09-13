@@ -78,7 +78,7 @@ router.post("/register", async (req, res, next) => {
     logger.info("deleted from redis...");
     res
       .status(HTTPStatus.OK)
-      .send({ message: "Registered User Successfully." });
+      .send({ message: "Registered User Successfully..." });
     return next();
   } catch (error) {
     logger.error("POST /register ", error);
